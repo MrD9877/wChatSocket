@@ -37,10 +37,7 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-  console.log("a user connected ", socket.id);
-
   socket.on("joinRoom", (accessToken) => {
-    // console.log("accessToken", accessToken);
     const decode = jwt.verify(accessToken, process.env.LOCAL_SECRET, (err, data) => {
       if (err) return keys.ERROR;
       return data;
@@ -64,7 +61,6 @@ io.on("connection", (socket) => {
     if (decode === keys.ERROR) {
       io.to(socket.id).emit("tokenExpire", `401`);
     } else {
-      console.log(`Message to room ${roomId}: ${message} by ${decode.user.userId}`);
       const roomSize = io.sockets.adapter.rooms.get(roomId)?.size || 0;
       if (roomSize < 1) {
         saveMsgInDB(message, roomId, decode.user.userId, image);
@@ -83,17 +79,47 @@ io.on("connection", (socket) => {
     console.log(`User left room: ${roomId}`);
   });
 
+  socket.on("call", ({ to, offer, accessToken, type }) => {
+    const decode = jwt.verify(accessToken, process.env.LOCAL_SECRET, (err, data) => {
+      if (err) return keys.ERROR;
+      return data;
+    });
+    if (decode === keys.ERROR) {
+      io.to(socket.id).emit("tokenExpired", `401`);
+      io.to(socket.id).emit("closeCall", { from: to });
+    } else {
+      io.to(to).emit("requestCall", { offer, from: decode.user.userId, name: decode.user.name, type });
+    }
+  });
+
+  socket.on("call:accepted", ({ to, answer, from }) => {
+    io.to(to).emit("callRequest:accepted", { answer, from });
+  });
+
+  socket.on("peer:negotiation", ({ from, to, offer }) => {
+    io.to(to).emit("peer:negotiation", { from, offer });
+  });
+
+  socket.on("peer:negotiation:done", ({ from, to, answer }) => {
+    io.to(to).emit("peer:negotiation:done", { from, answer });
+  });
+
+  socket.on("request:after:course", ({ from, to }) => {
+    io.to(to).emit("request:after:course", { from });
+  });
+  socket.on("request:after:request", ({ from, to }) => {
+    io.to(to).emit("request:after:request", { from });
+  });
+
+  socket.on("closeCall", ({ from, to }) => {
+    io.to(to).emit("closeCall", { from });
+  });
+  socket.on("requestStream", ({ from, to }) => {
+    io.to(to).emit("requestStream", { from });
+  });
+
   socket.on("disconnect", () => {
     const rooms = socket.rooms; // Get all rooms the socket is in
-    console.log(rooms);
-    // rooms.forEach((room) => {
-    //   console.log(room);
-    //   if (room !== socket.id) {
-    //     // Ignore the default room (socket.id)
-    //     socket.leave(room); // Leave the room
-    //     console.log(`User left room: ${room}`);
-    //   }
-    // });
     console.log("user disconnected");
   });
 });
