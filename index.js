@@ -53,7 +53,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("private message", (roomId, { message, accessToken, image }) => {
+  socket.on("private message", (roomId, { message, accessToken, image, audio }) => {
     const decode = jwt.verify(accessToken, process.env.LOCAL_SECRET, (err, data) => {
       if (err) return keys.ERROR;
       return data;
@@ -65,11 +65,7 @@ io.on("connection", (socket) => {
       if (roomSize < 1) {
         saveMsgInDB(message, roomId, decode.user.userId, image);
       } else {
-        if (image) {
-          io.to(roomId).emit("chat message", { message, user: decode.user.userId, image });
-        } else {
-          io.to(roomId).emit("chat message", { message, user: decode.user.userId }); // Emit message only to users in the room
-        }
+        io.to(roomId).emit("chat message", { message, user: decode.user.userId, audio, image }); // Emit message only to users in the room
       }
     }
   });
@@ -116,6 +112,10 @@ io.on("connection", (socket) => {
   });
   socket.on("requestStream", ({ from, to }) => {
     io.to(to).emit("requestStream", { from });
+  });
+
+  socket.on("audio", (record, to) => {
+    io.to(to).emit("audio", record);
   });
 
   socket.on("disconnect", () => {
