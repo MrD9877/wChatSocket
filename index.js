@@ -15,7 +15,7 @@ const secret = "secret";
 // Set up CORS for Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // The client-side URL where the React app is hosted
+    origin: "*", // The client-side URL where the React app is hosted
     methods: ["GET", "POST"], // Allowed methods for CORS
     credentials: true,
   },
