@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { getDate } from "./utilities/getTime.js";
 import { generateRandom } from "./utilities/random.js";
 import { ChatPage } from "./model/Chatpages.js";
+import { sendNotification } from "./utilities/sendNotification.js";
 dotenv.config();
 
 export async function saveMsgInDB(msg, to, user) {
@@ -11,6 +12,12 @@ export async function saveMsgInDB(msg, to, user) {
     await mongoose.connect(process.env.MONGO_DB_STRING);
     const userInfo = await User.findOne({ userId: to });
     if (!userInfo) return { msg: "EROOR NO USER WITH GIVEN ID FOUND", status: 400 };
+    // sending notification to receiver
+    const subscribeData = userInfo.subscribe;
+    console.log(userInfo);
+    if (subscribeData.active) {
+      await sendNotification(subscribeData.data);
+    }
     const chat = userInfo.chatPages.get(user);
     const newId = generateRandom(32);
     if (!chat) {
