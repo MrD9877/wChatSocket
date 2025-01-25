@@ -1,5 +1,5 @@
 import webPush from "web-push";
-export async function sendNotification(subData) {
+export async function sendNotification(subData, data) {
   const publicKey = "BO3Jr3L3pKHVPp7SnEpmelRfoI-9T7o1FtIMleCDemAku_U83dTK--h_3JRPoXxFoHaUUr8h-noipUpNtgMVe4g";
   const privateKey = "hRunz5ZgYXRKMrIVRBLWks7jaXZDKYolKhDjxX0tugg";
 
@@ -11,8 +11,8 @@ export async function sendNotification(subData) {
 
   // Push notification payload
   const payload = JSON.stringify({
-    title: "Hello!",
-    body: "You have a new message!",
+    title: data.title,
+    body: data.body,
     icon: "path-to-icon.png",
   });
 
@@ -22,7 +22,6 @@ export async function sendNotification(subData) {
       .sendNotification(pushSubscription, payload)
       .then((response) => {
         resolve(200);
-        console.log("Push notification sent:", response);
       })
       .catch((error) => {
         resolve(500);

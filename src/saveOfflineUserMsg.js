@@ -12,11 +12,10 @@ export async function saveMsgInDB(msg, to, user) {
     await mongoose.connect(process.env.MONGO_DB_STRING);
     const userInfo = await User.findOne({ userId: to });
     if (!userInfo) return { msg: "EROOR NO USER WITH GIVEN ID FOUND", status: 400 };
-    // sending notification to receiver
-    const subscribeData = userInfo.subscribe;
-    console.log(userInfo);
-    if (subscribeData.active) {
-      await sendNotification(subscribeData.data);
+    const sub = await User.findOne({ userId: to }, { subscribe: 1 });
+    const dd = sub._doc;
+    if (dd.subscribe) {
+      await sendNotification(dd.subscribe, { title: userInfo.name, body: msg });
     }
     const chat = userInfo.chatPages.get(user);
     const newId = generateRandom(32);
