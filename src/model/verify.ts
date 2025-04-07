@@ -15,4 +15,4 @@ const veriftSchema = new Schema({
 
 veriftSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 1 });
 
-export const Verify = mongoose.models.Verify || mongoose.model("Verify", veriftSchema);
+export const Verify = mongoose.model("Verify", veriftSchema);

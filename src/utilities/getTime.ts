@@ -1,4 +1,4 @@
-export function getDate(string) {
+export function getDate(string: Date) {
   const now = new Date(string);
   let year = now.getFullYear();
   let month = now.getMonth() + 1;

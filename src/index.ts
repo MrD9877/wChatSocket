@@ -3,46 +3,50 @@ const app = express();
 import http from "http";
 const server = http.createServer(app);
 import { Server } from "socket.io";
-import cookieParser from "cookie-parser";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import dotenv from "dotenv";
-import { keys } from "./src/utilities/keys.js";
-import { saveMsgInDB } from "./src/saveOfflineUserMsg.js";
+import { saveMsgInDB } from "./saveOfflineUserMsg";
 dotenv.config();
 
-const secret = "secret";
+interface UserData {
+  userId: string;
+  name: string;
+}
 
+// Modify the return type to match the expected output
+async function verifyToken(accessToken: string): Promise<{ user: UserData } | false> {
+  try {
+    const data = (await jwt.verify(accessToken, process.env.LOCAL_SECRET || "")) as JwtPayload;
+
+    // Check if the necessary user data exists in the payload
+    if (data && data.userId && data.name) {
+      return { user: { userId: data.userId, name: data.name } };
+    }
+
+    // If the necessary data is missing, return false
+    return false;
+  } catch (err) {
+    // Return false if verification fails
+    return false;
+  }
+}
 // Set up CORS for Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "*", // The client-side URL where the React app is hosted
-    methods: ["GET", "POST"], // Allowed methods for CORS
+    origin: "*",
+    methods: ["GET", "POST"],
     credentials: true,
   },
 });
-
-// io.use((socket, next) => {
-//   cookieParser()(socket.request, socket.request.res, (err) => {
-//     if (err) return next(err);
-//     const token = socket.request.cookies.accessToken;
-//     // const decode = jwt.verify(token, secret);
-//     // console.log(decode);
-//   });
-//   //   socket.user = "dhuruv";
-//   next();
-// });
 
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
 
 io.on("connection", (socket) => {
-  socket.on("joinRoom", (accessToken) => {
-    const decode = jwt.verify(accessToken, process.env.LOCAL_SECRET, (err, data) => {
-      if (err) return keys.ERROR;
-      return data;
-    });
-    if (decode === keys.ERROR) {
+  socket.on("joinRoom", async (accessToken) => {
+    const decode = await verifyToken(accessToken);
+    if (!decode || (decode && !decode.user)) {
       io.to(socket.id).emit("welcome", `401`);
     } else {
       if (decode.user) {
@@ -53,12 +57,9 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("private message", (roomId, { message, accessToken, image, audio }) => {
-    const decode = jwt.verify(accessToken, process.env.LOCAL_SECRET, (err, data) => {
-      if (err) return keys.ERROR;
-      return data;
-    });
-    if (decode === keys.ERROR) {
+  socket.on("private message", async (roomId, { message, accessToken, image, audio }) => {
+    const decode = await verifyToken(accessToken);
+    if (!decode || (decode && !decode.user)) {
       io.to(socket.id).emit("tokenExpire", `401`);
     } else {
       const roomSize = io.sockets.adapter.rooms.get(roomId)?.size || 0;
@@ -75,12 +76,9 @@ io.on("connection", (socket) => {
     console.log(`User left room: ${roomId}`);
   });
 
-  socket.on("call", ({ to, offer, accessToken, type }) => {
-    const decode = jwt.verify(accessToken, process.env.LOCAL_SECRET, (err, data) => {
-      if (err) return keys.ERROR;
-      return data;
-    });
-    if (decode === keys.ERROR) {
+  socket.on("call", async ({ to, offer, accessToken, type }) => {
+    const decode = await verifyToken(accessToken);
+    if (!decode || (decode && !decode.user)) {
       io.to(socket.id).emit("tokenExpired", `401`);
       io.to(socket.id).emit("closeCall", { from: to });
     } else {
@@ -127,3 +125,14 @@ io.on("connection", (socket) => {
 server.listen(4000, () => {
   console.log("Server is running on http://localhost:4000");
 });
+
+// io.use((socket, next) => {
+//   cookieParser()(socket.request, socket.request.res, (err) => {
+//     if (err) return next(err);
+//     const token = socket.request.cookies.accessToken;
+//     // const decode = jwt.verify(token, secret);
+//     // console.log(decode);
+//   });
+//   //   socket.user = "dhuruv";
+//   next();
+// })

@@ -1,14 +1,36 @@
-import mongoose from "mongoose";
-const { Schema } = mongoose;
+import mongoose, { Schema, Document } from "mongoose";
 
-const chatsSchema = new Schema({
+// Define the interface for chat message
+interface IChats {
+  user: string;
+  date: Date;
+  message: string;
+  isImage: boolean;
+}
+
+// Define the interface for the chat page
+interface IChatPage extends Document {
+  chatId: string;
+  chats: Array<{
+    date: Date;
+    chat: IChats[];
+  }>;
+  imagesUrl: Array<{
+    imageId: string;
+    url: string;
+    dateGenerated: Date;
+  }>;
+}
+
+// Define the schema for the chat page
+const chatsSchema = new Schema<IChatPage>({
   chatId: {
     type: Schema.Types.String,
     required: true,
   },
   chats: [
     {
-      date: { type: Schema.Types.Date },
+      date: { type: Schema.Types.Date, required: true },
       chat: [
         {
           user: {
@@ -40,4 +62,5 @@ const chatsSchema = new Schema({
   ],
 });
 
-export const ChatPage = mongoose.models.ChatPage || mongoose.model("ChatPage", chatsSchema);
+// Create and export the model
+export const ChatPage = mongoose.model<IChatPage>("ChatPage", chatsSchema);

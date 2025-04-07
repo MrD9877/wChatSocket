@@ -1,5 +1,5 @@
 import webPush from "web-push";
-export async function sendNotification(subData, data) {
+export async function sendNotification(subData: webPush.PushSubscription, data: { title: string; body: string }) {
   const publicKey = "BO3Jr3L3pKHVPp7SnEpmelRfoI-9T7o1FtIMleCDemAku_U83dTK--h_3JRPoXxFoHaUUr8h-noipUpNtgMVe4g";
   const privateKey = "hRunz5ZgYXRKMrIVRBLWks7jaXZDKYolKhDjxX0tugg";
 

@@ -7,15 +7,15 @@ import { ChatPage } from "./model/Chatpages.js";
 import { sendNotification } from "./utilities/sendNotification.js";
 dotenv.config();
 
-export async function saveMsgInDB(msg, to, user) {
+export async function saveMsgInDB(msg: string, to: string, user: string, image: string) {
+  if (!process.env.MONGO_DB_STRING) throw Error("no MONGO_DB_STRING");
   try {
     await mongoose.connect(process.env.MONGO_DB_STRING);
     const userInfo = await User.findOne({ userId: to });
     if (!userInfo) return { msg: "EROOR NO USER WITH GIVEN ID FOUND", status: 400 };
     const sub = await User.findOne({ userId: to }, { subscribe: 1 });
-    const dd = sub._doc;
-    if (dd.subscribe) {
-      await sendNotification(dd.subscribe, { title: userInfo.name, body: msg });
+    if (sub && sub.subscribe && userInfo && userInfo.name) {
+      await sendNotification(sub.subscribe, { title: userInfo.name, body: msg });
     }
     const chat = userInfo.chatPages.get(user);
     const newId = generateRandom(32);
@@ -45,7 +45,7 @@ export async function saveMsgInDB(msg, to, user) {
       });
       await newChat.save();
       return;
-    } else {
+    } else if (typeof chat.newMessages === "number") {
       userInfo.chatPages.set(user, {
         chatId: chat.chatId,
         lastMessage: {
@@ -57,6 +57,7 @@ export async function saveMsgInDB(msg, to, user) {
       });
       await userInfo.save();
       const newChat = await ChatPage.findOne({ chatId: chat.chatId });
+      if (!newChat) return;
       if (!newChat.chats || newChat.chats.length < 1) {
         newChat.chats = [
           {
@@ -66,6 +67,7 @@ export async function saveMsgInDB(msg, to, user) {
                 user: user,
                 date: new Date(),
                 message: msg,
+                isImage: false,
               },
             ],
           },
@@ -73,12 +75,14 @@ export async function saveMsgInDB(msg, to, user) {
         const res = await newChat.save();
         return;
       }
+
       const chats = newChat.chats[newChat.chats.length - 1];
       if (chats && getDate(chats.date) === getDate(new Date())) {
         newChat.chats[newChat.chats.length - 1].chat.push({
           user: user,
           date: new Date(),
           message: msg,
+          isImage: false,
         });
         await newChat.save();
         return;
@@ -90,6 +94,7 @@ export async function saveMsgInDB(msg, to, user) {
               date: new Date(),
               message: msg,
               user: user,
+              isImage: false,
             },
           ],
         });
