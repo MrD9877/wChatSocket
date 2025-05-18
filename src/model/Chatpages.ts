@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 // Define the interface for chat message
-interface IChats {
+interface StoredChats {
   user: string;
   date: Date;
   message: string;
@@ -9,11 +9,11 @@ interface IChats {
 }
 
 // Define the interface for the chat page
-interface IChatPage extends Document {
+interface IChats extends Document {
   chatId: string;
   chats: Array<{
     date: Date;
-    chat: IChats[];
+    chat: StoredChats[];
   }>;
   imagesUrl: Array<{
     imageId: string;
@@ -23,7 +23,7 @@ interface IChatPage extends Document {
 }
 
 // Define the schema for the chat page
-const chatsSchema = new Schema<IChatPage>({
+const chatsSchema = new Schema<IChats>({
   chatId: {
     type: Schema.Types.String,
     required: true,
@@ -45,22 +45,21 @@ const chatsSchema = new Schema<IChatPage>({
             type: Schema.Types.String,
             required: true,
           },
-          isImage: {
-            type: Schema.Types.Boolean,
-            default: false,
+          media: {
+            mediaType: {
+              type: Schema.Types.String,
+              default: "text",
+            },
+            id: {
+              type: Schema.Types.String,
+              require: true,
+            },
           },
         },
       ],
     },
   ],
-  imagesUrl: [
-    {
-      imageId: { type: Schema.Types.String },
-      url: { type: Schema.Types.String },
-      dateGenerated: { type: Schema.Types.Date },
-    },
-  ],
 });
 
 // Create and export the model
-export const ChatPage = mongoose.model<IChatPage>("ChatPage", chatsSchema);
+export const ChatPage = mongoose.model<IChats>("ChatPage", chatsSchema);

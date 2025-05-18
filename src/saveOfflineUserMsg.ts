@@ -7,7 +7,7 @@ import { ChatPage } from "./model/Chatpages.js";
 import { sendNotification } from "./utilities/sendNotification.js";
 dotenv.config();
 
-export async function saveMsgInDB(msg: string, to: string, user: string, image: string) {
+export async function saveMsgInDB(msg: string, to: string, user: string, image?: Buffer) {
   if (!process.env.MONGO_DB_STRING) throw Error("no MONGO_DB_STRING");
   try {
     await mongoose.connect(process.env.MONGO_DB_STRING);

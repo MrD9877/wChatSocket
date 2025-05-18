@@ -1,11 +1,11 @@
 {
   "name": "workspace2",
   "version": "1.0.0",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "build": "tsc && copyfiles -u 1 src/public/* dist/",
     "test": "jest",
-    "dev": "npx ts-node src/index",
+    "dev": "node --loader ts-node/esm src/index.ts",
     "start": "node dist/src/index"
   },
   "main": "./dist/src/index.js",
