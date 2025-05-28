@@ -37,17 +37,16 @@ export function ioInstance(io: Server<DefaultEventsMap, DefaultEventsMap, Defaul
       }
     });
 
-    socket.on("private message", async (roomId: string, { message, accessToken, image, audio }: { message: string; accessToken: string; image?: Buffer; audio?: Buffer }) => {
+    socket.on("private message", async (roomId: string, { message, accessToken, image, audio, id }: { message: string; accessToken: string; image?: string | string[]; audio: string; id: string }) => {
+      console.log({ message });
       const decode = await verifyToken(accessToken);
       if (!decode || (decode && !decode.user)) {
         io.to(socket.id).emit("tokenExpire", `401`);
       } else {
         const roomSize = io.sockets.adapter.rooms.get(roomId)?.size || 0;
-        if (roomSize < 1) {
-          saveMsgInDB(message, roomId, decode.user.userId, image);
-        } else {
-          io.to(roomId).emit("chat message", { message, user: decode.user.userId, audio, image }); // Emit message only to users in the room
-        }
+        console.log({ roomSize, roomId, image });
+        io.to(roomId).emit("chat message", { message, user: decode.user.userId, audio, image, id, username: decode.user.name });
+        saveMsgInDB({ message, to: roomId, userId: decode.user.userId, image, audio, id });
       }
     });
 

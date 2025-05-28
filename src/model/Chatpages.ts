@@ -1,65 +1,34 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-// Define the interface for chat message
-interface StoredChats {
-  user: string;
-  date: Date;
-  message: string;
-  isImage: boolean;
-}
+export type SavedDbMessages = {
+  id: string;
+  userId: string;
+  message?: string;
+  audio?: Blob[] | undefined;
+  image?: string[] | string | undefined;
+  video?: string | undefined;
+  timestamp: number;
+  sender: boolean;
+};
 
-// Define the interface for the chat page
-interface IChats extends Document {
+export type Chats = Omit<SavedDbMessages, "id" | "sender">;
+
+const expireAter = 7 * 24 * 60 * 60 * 1000;
+
+interface IChats extends Chats, Document {
   chatId: string;
-  chats: Array<{
-    date: Date;
-    chat: StoredChats[];
-  }>;
-  imagesUrl: Array<{
-    imageId: string;
-    url: string;
-    dateGenerated: Date;
-  }>;
+  expiresAt: Date;
 }
 
-// Define the schema for the chat page
 const chatsSchema = new Schema<IChats>({
-  chatId: {
-    type: Schema.Types.String,
-    required: true,
-  },
-  chats: [
-    {
-      date: { type: Schema.Types.Date, required: true },
-      chat: [
-        {
-          user: {
-            type: Schema.Types.String,
-            required: true,
-          },
-          date: {
-            type: Schema.Types.Date,
-            required: true,
-          },
-          message: {
-            type: Schema.Types.String,
-            required: true,
-          },
-          media: {
-            mediaType: {
-              type: Schema.Types.String,
-              default: "text",
-            },
-            id: {
-              type: Schema.Types.String,
-              require: true,
-            },
-          },
-        },
-      ],
-    },
-  ],
+  chatId: { type: String, required: true },
+  userId: { type: String, required: true },
+  message: { type: String },
+  audio: { type: String },
+  image: [{ type: String }],
+  video: { type: String },
+  timestamp: { type: Number, required: true },
+  expiresAt: { type: Date, default: () => new Date(Date.now() + expireAter) },
 });
-
-// Create and export the model
+chatsSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 1 });
 export const ChatPage = mongoose.model<IChats>("ChatPage", chatsSchema);

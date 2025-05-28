@@ -1,32 +1,16 @@
-import webPush from "web-push";
-export async function sendNotification(subData: webPush.PushSubscription, data: { title: string; body: string }) {
-  const publicKey = "BO3Jr3L3pKHVPp7SnEpmelRfoI-9T7o1FtIMleCDemAku_U83dTK--h_3JRPoXxFoHaUUr8h-noipUpNtgMVe4g";
-  const privateKey = "hRunz5ZgYXRKMrIVRBLWks7jaXZDKYolKhDjxX0tugg";
+import webpush from "web-push";
+import { typeNotificationData } from "../saveOfflineUserMsg.js";
+export async function sendNotification(subData: webpush.PushSubscription, data: typeNotificationData) {
+  const publicKey = process.env.NOTIFICATION_PUBLIC_KEY;
+  const privateKey = process.env.NOTIFICATION_PRIVATE_KEY;
+  if (!publicKey || !privateKey) return;
+  webpush.setVapidDetails("mailto:your-email@example.com", publicKey, privateKey);
 
-  // Set VAPID details
-  webPush.setVapidDetails("mailto:your-email@example.com", publicKey, privateKey);
-
-  // Push subscription object (this would be from your database)
   const pushSubscription = { ...subData };
-
-  // Push notification payload
-  const payload = JSON.stringify({
-    title: data.title,
-    body: data.body,
-    icon: "path-to-icon.png",
-  });
-
-  // Send push notification
-  const promise = new Promise((resolve, reject) => {
-    webPush
-      .sendNotification(pushSubscription, payload)
-      .then((response) => {
-        resolve(200);
-      })
-      .catch((error) => {
-        resolve(500);
-        console.error("Error sending push notification:", error);
-      });
-  });
-  await promise;
+  const payload = JSON.stringify(data);
+  try {
+    await webpush.sendNotification(pushSubscription, payload);
+  } catch (err) {
+    console.log(err);
+  }
 }
