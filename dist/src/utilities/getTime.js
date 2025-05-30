@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDate = getDate;
-function getDate(string) {
+export function getDate(string) {
     const now = new Date(string);
     let year = now.getFullYear();
     let month = now.getMonth() + 1;
