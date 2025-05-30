@@ -1,4 +1,4 @@
-import http from "http";
+// const roomSize = io.sockets.adapter.rooms.get(roomId)?.size || 0;
 import jwt from "jsonwebtoken";
 import { saveMsgInDB } from "../saveOfflineUserMsg.js";
 import { DefaultEventsMap, Server } from "socket.io";
@@ -24,27 +24,20 @@ async function verifyToken(accessToken: string): Promise<{ user: UserData } | fa
 
 export function ioInstance(io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) {
   io.on("connection", (socket) => {
-    socket.on("joinRoom", async (accessToken) => {
+    socket.on("joinRoom", async ({ accessToken }) => {
       const decode = await verifyToken(accessToken);
-      if (!decode || (decode && !decode.user)) {
-        io.to(socket.id).emit("welcome", `401`);
-      } else {
-        if (decode.user) {
-          io.to(socket.id).emit("welcome", `200`);
-          socket.join(decode.user.userId);
-          console.log(`User joined room: ${decode.user.name}`);
-        }
+      if (!decode || !decode.user) {
+        socket.emit("unauthorized", { data: { accessToken }, custom: "joinRoom" });
+        return;
       }
+      socket.join(decode.user.userId);
     });
 
-    socket.on("private message", async (roomId: string, { message, accessToken, image, audio, id }: { message: string; accessToken: string; image?: string | string[]; audio: string; id: string }) => {
-      console.log({ message });
+    socket.on("private message", async ({ roomId, message, accessToken, image, audio, id }: { message: string; accessToken: string; image?: string | string[]; audio: string; id: string; roomId: string }) => {
       const decode = await verifyToken(accessToken);
       if (!decode || (decode && !decode.user)) {
-        io.to(socket.id).emit("tokenExpire", `401`);
+        socket.emit("unauthorized", { data: { roomId, message, accessToken, image, audio, id }, custom: "private message" });
       } else {
-        const roomSize = io.sockets.adapter.rooms.get(roomId)?.size || 0;
-        console.log({ roomSize, roomId, image });
         io.to(roomId).emit("chat message", { message, user: decode.user.userId, audio, image, id, username: decode.user.name });
         saveMsgInDB({ message, to: roomId, userId: decode.user.userId, image, audio, id });
       }
@@ -55,48 +48,42 @@ export function ioInstance(io: Server<DefaultEventsMap, DefaultEventsMap, Defaul
       console.log(`User left room: ${roomId}`);
     });
 
-    socket.on("call", async ({ to, offer, accessToken, type }) => {
+    socket.on("call", async ({ to, accessToken, type }) => {
       const decode = await verifyToken(accessToken);
       if (!decode || (decode && !decode.user)) {
-        io.to(socket.id).emit("tokenExpired", `401`);
-        io.to(socket.id).emit("closeCall", { from: to });
+        socket.emit("unauthorized", { data: { to, accessToken, type }, custom: "call" });
       } else {
-        io.to(to).emit("requestCall", { offer, from: decode.user.userId, name: decode.user.name, type });
+        io.to(to).emit("requestCall", { from: decode.user.userId, name: decode.user.name, type });
       }
     });
 
-    socket.on("call:accepted", ({ to, answer, from }) => {
-      io.to(to).emit("callRequest:accepted", { answer, from });
+    socket.on("offer", async ({ to, offer, accessToken }) => {
+      const decode = await verifyToken(accessToken);
+      if (!decode || (decode && !decode.user)) {
+        socket.emit("unauthorized", { data: { to, offer, accessToken }, custom: "offer" });
+      } else if (decode.user) {
+        io.to(to).emit("offer", { offer, from: decode.user.userId });
+      }
     });
 
-    socket.on("peer:negotiation", ({ from, to, offer }) => {
-      io.to(to).emit("peer:negotiation", { from, offer });
-    });
-
-    socket.on("peer:negotiation:done", ({ from, to, answer }) => {
-      io.to(to).emit("peer:negotiation:done", { from, answer });
-    });
-
-    socket.on("request:after:course", ({ from, to }) => {
-      io.to(to).emit("request:after:course", { from });
-    });
-    socket.on("request:after:request", ({ from, to }) => {
-      io.to(to).emit("request:after:request", { from });
+    socket.on("answer", async ({ accessToken, to, answer }) => {
+      const decode = await verifyToken(accessToken);
+      if (!decode || (decode && !decode.user)) {
+        socket.emit("unauthorized", { data: { accessToken, to, answer }, custom: "answer" });
+      } else if (decode.user) {
+        io.to(to).emit("answer", { from: decode.user.userId, answer });
+      }
     });
 
     socket.on("closeCall", ({ from, to }) => {
       io.to(to).emit("closeCall", { from });
     });
-    socket.on("requestStream", ({ from, to }) => {
-      io.to(to).emit("requestStream", { from });
-    });
-
-    socket.on("audio", (record, to) => {
-      io.to(to).emit("audio", record);
-    });
 
     socket.on("disconnect", () => {
-      console.log("user disconnected");
+      const rooms = Array.from(socket.rooms).filter((r) => r !== socket.id);
+      rooms.forEach((room) => {
+        socket.leave(room);
+      });
     });
   });
 }

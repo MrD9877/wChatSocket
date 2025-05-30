@@ -25,7 +25,7 @@ export async function saveMsgInDB({ message, to, userId, image, audio, id }: { m
     if (!userInfo || !from) return { msg: "EROOR NO USER WITH GIVEN ID FOUND", status: 400 };
     if (userInfo.name) {
       const data = { name: from.name, message, image, audio, userId, id, clientId: to, timestamp: Date.now() };
-      await sendNotification(userInfo.subscribe, data);
+      if (userInfo.subscribe) await sendNotification(userInfo.subscribe, data);
     }
     userInfo.chats.push(id);
     userInfo.save();
