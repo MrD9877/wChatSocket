@@ -59,17 +59,8 @@ app.post("/pushNotification", async (req, res) => {
   return;
 });
 
-server.listen(4000, () => {
+const port = process.env.PORT || 4000;
+
+server.listen(port, () => {
   console.log("Server is running on http://localhost:4000");
 });
-
-// io.use((socket, next) => {
-//   cookieParser()(socket.request, socket.request.res, (err) => {
-//     if (err) return next(err);
-//     const token = socket.request.cookies.accessToken;
-//     // const decode = jwt.verify(token, secret);
-//     // console.log(decode);
-//   });
-//   //   socket.user = "dhuruv";
-//   next();
-// })
