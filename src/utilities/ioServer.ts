@@ -7,6 +7,15 @@ interface UserData {
   userId: string;
   name: string;
 }
+export type PrivateMessage = {
+  userId: string;
+  message?: string | undefined;
+  accessToken: string;
+  image?: string | string[];
+  id: string;
+  audio?: string;
+  timestamp: number;
+};
 
 async function verifyToken(accessToken: string): Promise<{ user: UserData } | false> {
   try {
@@ -24,22 +33,24 @@ async function verifyToken(accessToken: string): Promise<{ user: UserData } | fa
 
 export function ioInstance(io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) {
   io.on("connection", (socket) => {
-    socket.on("joinRoom", async ({ accessToken }) => {
-      const decode = await verifyToken(accessToken);
+    socket.on("joinRoom", async (msg: { accessToken: string }) => {
+      const decode = await verifyToken(msg.accessToken);
       if (!decode || !decode.user) {
-        socket.emit("unauthorized", { data: { accessToken }, custom: "joinRoom" });
+        socket.emit("unauthorized", { data: msg, custom: "joinRoom" });
         return;
       }
+      console.log(decode.user);
       socket.join(decode.user.userId);
     });
 
-    socket.on("private message", async ({ roomId, message, accessToken, image, audio, id }: { message: string; accessToken: string; image?: string | string[]; audio: string; id: string; roomId: string }) => {
+    socket.on("private message", async ({ userId, message, accessToken, image, audio, id, timestamp }: PrivateMessage) => {
       const decode = await verifyToken(accessToken);
+      console.log(image);
       if (!decode || (decode && !decode.user)) {
-        socket.emit("unauthorized", { data: { roomId, message, accessToken, image, audio, id }, custom: "private message" });
+        socket.emit("unauthorized", { data: { userId, message, accessToken, image, audio, id }, custom: "private message" });
       } else {
-        io.to(roomId).emit("chat message", { message, user: decode.user.userId, audio, image, id, username: decode.user.name });
-        saveMsgInDB({ message, to: roomId, userId: decode.user.userId, image, audio, id });
+        io.to(userId).emit("chat message", { message, userId: decode.user.userId, audio, image, id, username: decode.user.name, timestamp });
+        saveMsgInDB({ message, to: userId, userId: decode.user.userId, image, audio, id });
       }
     });
 

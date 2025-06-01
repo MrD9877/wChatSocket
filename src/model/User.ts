@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export type FriendRequest = {
   name: string;
@@ -19,6 +19,7 @@ export type Usertype = {
   friendRequests: FriendRequest[];
   friendRequestSend: string[];
   chats: string[];
+  publicKey: string;
 };
 export interface IUser extends Usertype, Document {}
 const userSchema = new Schema<Usertype & Document>({
@@ -52,6 +53,7 @@ const userSchema = new Schema<Usertype & Document>({
   ],
   friendRequestSend: [{ type: Schema.Types.String }],
   chats: [{ type: String }],
+  publicKey: { type: String },
 });
 
 // Define a text index on email and name

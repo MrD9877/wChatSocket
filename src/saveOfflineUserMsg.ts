@@ -7,7 +7,7 @@ dotenv.config();
 
 export type typeNotificationData = {
   name: string;
-  message: string;
+  message?: string;
   image: string | string[] | undefined;
   audio: string | undefined;
   userId: string;
@@ -16,7 +16,7 @@ export type typeNotificationData = {
   timestamp: number;
 };
 
-export async function saveMsgInDB({ message, to, userId, image, audio, id }: { message: string; to: string; userId: string; image?: string | string[]; audio?: string; id: string }) {
+export async function saveMsgInDB({ message, to, userId, image, audio, id }: { message?: string | undefined; to: string; userId: string; image?: string | string[]; audio?: string; id: string }) {
   if (!process.env.MONGO_DB_STRING) throw Error("no MONGO_DB_STRING");
   try {
     await mongoose.connect(process.env.MONGO_DB_STRING);
