@@ -49,8 +49,9 @@ export function ioInstance(io: Server<DefaultEventsMap, DefaultEventsMap, Defaul
       if (!decode || (decode && !decode.user)) {
         socket.emit("unauthorized", { data: { userId, message, accessToken, image, audio, id }, custom: "private message" });
       } else {
+        const roomSize = io.sockets.adapter.rooms.get(userId)?.size || 0;
         io.to(userId).emit("chat message", { message, userId: decode.user.userId, audio, image, id, username: decode.user.name, timestamp });
-        saveMsgInDB({ message, to: userId, userId: decode.user.userId, image, audio, id });
+        saveMsgInDB({ message, to: userId, userId: decode.user.userId, image, audio, id, roomSize, timestamp, name: decode.user.name });
       }
     });
 
